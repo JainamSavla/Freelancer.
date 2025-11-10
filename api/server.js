@@ -17,10 +17,12 @@ mongoose.set("strictQuery", true);
 
 const connect = async () => {
   try {
-    await mongoose.connect(process.env.MONGO);
+    await mongoose.connect(process.env.MONGO, {
+      serverSelectionTimeoutMS: 30000, // Increase timeout
+    });
     console.log("Connected to mongoDB!");
   } catch (error) {
-    console.log(error);
+    console.error("MongoDB connection error:", error);
   }
 };
 
