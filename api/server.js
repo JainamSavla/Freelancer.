@@ -15,16 +15,31 @@ const app = express();
 dotenv.config();
 mongoose.set("strictQuery", true);
 
+// Cache MongoDB connection for Vercel serverless
+let cachedConnection = null;
+
 const connect = async () => {
+  if (cachedConnection && mongoose.connection.readyState === 1) {
+    console.log("Using cached MongoDB connection");
+    return cachedConnection;
+  }
+
   try {
-    await mongoose.connect(process.env.MONGO, {
-      serverSelectionTimeoutMS: 30000, // Increase timeout
+    cachedConnection = await mongoose.connect(process.env.MONGO, {
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      maxPoolSize: 10,
     });
     console.log("Connected to mongoDB!");
+    return cachedConnection;
   } catch (error) {
     console.error("MongoDB connection error:", error);
+    throw error;
   }
 };
+
+// Connect before setting up routes
+await connect();
 
 app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(express.json());
@@ -41,11 +56,16 @@ app.use("/api/reviews", reviewRoute);
 app.use((err, req, res, next) => {
   const errorStatus = err.status || 500;
   const errorMessage = err.message || "Something went wrong!";
-
+  console.error("Error:", errorMessage);
   return res.status(errorStatus).send(errorMessage);
 });
 
-app.listen(8800, () => {
-  connect();
-  console.log("Backend server is running!");
-});
+// Export for Vercel serverless
+export default app;
+
+// Only listen if not in serverless environment
+if (process.env.NODE_ENV !== "production") {
+  app.listen(8800, () => {
+    console.log("Backend server is running!");
+  });
+}
