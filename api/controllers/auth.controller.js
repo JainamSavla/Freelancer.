@@ -12,7 +12,22 @@ export const register = async (req, res, next) => {
     });
 
     await newUser.save();
-    res.status(201).send("User has been created.");
+
+    const token = jwt.sign(
+      { id: newUser._id, isSeller: newUser.isSeller },
+      process.env.JWT_KEY
+    );
+
+    const { password, ...info } = newUser._doc;
+    res
+      .cookie("accessToken", token, {
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      })
+      .status(201)
+      .send(info);
   } catch (err) {
     next(err);
   }
@@ -28,10 +43,7 @@ export const login = async (req, res, next) => {
       return next(createError(400, "Wrong password or username!"));
 
     const token = jwt.sign(
-      {
-        id: user._id,
-        isSeller: user.isSeller,
-      },
+      { id: user._id, isSeller: user.isSeller },
       process.env.JWT_KEY
     );
 
@@ -39,6 +51,9 @@ export const login = async (req, res, next) => {
     res
       .cookie("accessToken", token, {
         httpOnly: true,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       })
       .status(200)
       .send(info);
