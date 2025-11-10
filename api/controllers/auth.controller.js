@@ -24,6 +24,7 @@ export const register = async (req, res, next) => {
         httpOnly: true,
         sameSite: "none",
         secure: true,
+        domain: ".vercel.app",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       })
       .status(201)
@@ -54,6 +55,7 @@ export const login = async (req, res, next) => {
         httpOnly: true,
         sameSite: "none",
         secure: true,
+        domain: ".vercel.app",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       })
       .status(200)
@@ -69,6 +71,7 @@ export const logout = async (req, res) => {
       httpOnly: true,
       sameSite: "none",
       secure: true,
+      domain: ".vercel.app",
     })
     .status(200)
     .send("User has been logged out.");
