@@ -41,5 +41,40 @@
     .payment-wrapper {
       margin-top: 20px;
     }
+
+    .currency-selector {
+      margin-bottom: 30px;
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+
+      label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 10px;
+        color: #333;
+      }
+
+      select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+
+        &:focus {
+          outline: none;
+          border-color: #1dbf73;
+        }
+      }
+
+      .amount-display {
+        margin-top: 15px;
+        font-size: 18px;
+        font-weight: 600;
+        color: #1dbf73;
+      }
+    }
   }
 }

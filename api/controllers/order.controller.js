@@ -2,34 +2,72 @@ import createError from "../utils/createError.js";
 import Order from "../models/order.model.js";
 import Gig from "../models/gig.model.js";
 import Stripe from "stripe";
+import axios from "axios";
+
+// Currency conversion helper
+const convertCurrency = async (amount, fromCurrency = "USD", toCurrency) => {
+  if (fromCurrency === toCurrency) return amount;
+
+  try {
+    // Using exchangerate-api.com (free tier)
+    const response = await axios.get(
+      `https://api.exchangerate-api.com/v4/latest/${fromCurrency}`
+    );
+    const rate = response.data.rates[toCurrency];
+    return Math.round(amount * rate * 100) / 100;
+  } catch (err) {
+    console.error("Currency conversion error:", err);
+    return amount; // Fallback to original amount
+  }
+};
+
 export const intent = async (req, res, next) => {
-  const stripe = new Stripe(process.env.STRIPE);
+  try {
+    const stripe = new Stripe(process.env.STRIPE);
+    const gig = await Gig.findById(req.params.id);
 
-  const gig = await Gig.findById(req.params.id);
+    // Get currency from request (default USD)
+    const currency = (req.query.currency || "usd").toLowerCase();
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: gig.price * 100,
-    currency: "usd",
-    automatic_payment_methods: {
-      enabled: true,
-    },
-  });
+    // Convert price if needed
+    let price = gig.price;
+    if (currency !== "usd") {
+      price = await convertCurrency(gig.price, "USD", currency.toUpperCase());
+    }
 
-  const newOrder = new Order({
-    gigId: gig._id,
-    img: gig.cover,
-    title: gig.title,
-    buyerId: req.userId,
-    sellerId: gig.userId,
-    price: gig.price,
-    payment_intent: paymentIntent.id,
-  });
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(price * 100), // Convert to cents/paisa
+      currency: currency,
+      automatic_payment_methods: {
+        enabled: true,
+      },
+      metadata: {
+        gigId: gig._id.toString(),
+        originalPrice: gig.price,
+        originalCurrency: "USD",
+      },
+    });
 
-  await newOrder.save();
+    const newOrder = new Order({
+      gigId: gig._id,
+      img: gig.cover,
+      title: gig.title,
+      buyerId: req.userId,
+      sellerId: gig.userId,
+      price: price,
+      payment_intent: paymentIntent.id,
+    });
 
-  res.status(200).send({
-    clientSecret: paymentIntent.client_secret,
-  });
+    await newOrder.save();
+
+    res.status(200).send({
+      clientSecret: paymentIntent.client_secret,
+      amount: price,
+      currency: currency,
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
 export const getOrders = async (req, res, next) => {
