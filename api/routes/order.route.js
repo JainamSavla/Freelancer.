@@ -1,11 +1,10 @@
 import express from "express";
 import { verifyToken } from "../middleware/jwt.js";
 import { getOrders, intent, confirm } from "../controllers/order.controller.js";
-import Order from "../models/Order.js"; // Import the Order model
+import Order from "../models/order.model.js"; // Fixed: lowercase 'order'
 
 const router = express.Router();
 
-// router.post("/:gigId", verifyToken, createOrder);
 router.get("/", verifyToken, async (req, res, next) => {
   try {
     console.log(
