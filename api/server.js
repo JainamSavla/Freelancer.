@@ -60,6 +60,33 @@ app.use("/api/conversations", conversationRoute);
 app.use("/api/messages", messageRoute);
 app.use("/api/reviews", reviewRoute);
 
+// Debug endpoint to check database
+app.get("/api/debug/check-data", async (req, res) => {
+  try {
+    const Order = mongoose.model("Order");
+    const Conversation = mongoose.model("Conversation");
+    const Gig = mongoose.model("Gig");
+
+    const ordersCount = await Order.countDocuments();
+    const conversationsCount = await Conversation.countDocuments();
+    const gigsCount = await Gig.countDocuments();
+
+    const recentOrders = await Order.find().limit(3);
+    const recentConvos = await Conversation.find().limit(3);
+
+    res.json({
+      counts: {
+        orders: ordersCount,
+        conversations: conversationsCount,
+        gigs: gigsCount,
+      },
+      samples: { orders: recentOrders, conversations: recentConvos },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use((err, req, res, next) => {
   const errorStatus = err.status || 500;
   const errorMessage = err.message || "Something went wrong!";

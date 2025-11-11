@@ -11,9 +11,16 @@ const Orders = () => {
   const { isLoading, error, data } = useQuery({
     queryKey: ["orders"],
     queryFn: () =>
-      newRequest.get(`/orders`).then((res) => {
-        return res.data;
-      }),
+      newRequest
+        .get(`/orders`)
+        .then((res) => {
+          console.log("Orders fetched:", res.data);
+          return res.data;
+        })
+        .catch((err) => {
+          console.error("Orders fetch error:", err.response?.data);
+          throw err;
+        }),
   });
 
   const handleContact = async (order) => {
@@ -27,48 +34,58 @@ const Orders = () => {
     } catch (err) {
       if (err.response.status === 404) {
         const res = await newRequest.post(`/conversations/`, {
-          to: currentUser.seller ? buyerId : sellerId,
+          to: currentUser.isSeller ? buyerId : sellerId,
         });
         navigate(`/message/${res.data.id}`);
       }
     }
   };
+
   return (
     <div className="orders">
       {isLoading ? (
         "loading"
       ) : error ? (
-        "error"
+        <div>Error: {error.message || "Failed to load orders"}</div>
       ) : (
         <div className="container">
           <div className="title">
             <h1>Orders</h1>
           </div>
-          <table>
-            <tr>
-              <th>Image</th>
-              <th>Title</th>
-              <th>Price</th>
-              <th>Contact</th>
-            </tr>
-            {data.map((order) => (
-              <tr key={order._id}>
-                <td>
-                  <img className="image" src={order.img} alt="" />
-                </td>
-                <td>{order.title}</td>
-                <td>{order.price}</td>
-                <td>
-                  <img
-                    className="message"
-                    src="./img/message.png"
-                    alt=""
-                    onClick={() => handleContact(order)}
-                  />
-                </td>
-              </tr>
-            ))}
-          </table>
+          {!data || data.length === 0 ? (
+            <p>No orders yet.</p>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Image</th>
+                  <th>Title</th>
+                  <th>Price</th>
+                  <th>Contact</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((order) => (
+                  <tr key={order._id}>
+                    <td>
+                      <img className="image" src={order.img} alt="" />
+                    </td>
+                    <td>{order.title}</td>
+                    <td>${order.price}</td>
+                    <td>
+                      <img
+                        className="message"
+                        src="./img/message.png"
+                        alt=""
+                        onClick={() => handleContact(order)}
+                        style={{ cursor: "pointer" }}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
     </div>
